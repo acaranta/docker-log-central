@@ -5,6 +5,13 @@ A container to fetch logs from other docker containers running on host ... and s
 
 **THIS A UNDER DEVELOPPEMENT !!! MAY NOT WORK**
 
+Build image
+-----------
+`docker build -t docker-log-central` 
+
+Run container
+-------------
+`docker run -v /var/run/docker.sock:/var/run/docker.sock docker-log-central`
 
 Reference
 ---------

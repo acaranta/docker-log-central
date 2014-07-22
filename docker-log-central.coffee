@@ -26,16 +26,17 @@ net    = require('net')
 out_port = '1514'
 out_host = '192.168.172.100'
 #Initialize Outgoing log connection
-connection = net.createConnection (out_port, out_host) ->
-	send_log = (socket, msg) ->
-		socket.write msg
+connection = net.createConnection out_port, out_host
+connection.on 'connect', () ->
+	console.log "Opened connection to #{out_host}:#{out_port}"
 
-	connection.on 'connect', () ->
-		console.log "Opened connection to #{out_host}:#{out_port}"
+connection.on 'error', (err) ->
+	console.log "Error connecting to #{out_host}:#{out_port}"
+	delay 1000, -> connection.connect out_port, out_host
 
-	connection.on 'end', (data) ->
-		console.log('Server lost ... Retrying...')
-		connection = net.createConnection out_port, out_host
+connection.on 'end', (data) ->
+	console.log('Server lost ... Retrying...')
+	delay 1000, -> connection.connect out_port, out_host
 
 
 #Docker logging Mgmt
@@ -69,16 +70,18 @@ docker.listContainers null, (err, containers) ->
     containers.forEach (data) ->
         attach(docker.getContainer(data.Id))
 
-# Event manager to attach to new conatiners        
+# Event manager to attach to new containers        
 docker.getEvents(null, (err, stream) ->
     throw err if err
     console.log((' ✓ connected to docker at "' + opts.docker_url + '"').green)
     
     stream.on('data', (data) ->
         data = JSON.parse(data)
-    
+
+        #console.log(data) 
         if data.status != 'create'
             return
+
       
         attach(docker.getContainer(data.id))
     )
@@ -87,6 +90,14 @@ docker.getEvents(null, (err, stream) ->
 ######################
 #Functions Definition
 ######################
+#Used to delay/wait before doing something
+delay = (ms, func) -> setTimeout func, ms
+
+#used to send message
+send_log = (socket, msg) ->
+	socket.write msg
+
+
 attach = (container) ->
     domain.create().on('error', (err) ->
         # most of the time it's dockerode replaying the callback when the connection is reset

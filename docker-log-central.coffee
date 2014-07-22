@@ -21,7 +21,24 @@ Docker = require('dockerode')
 colors = require('colors')
 domain = require('domain')
 fs     = require('fs')
+net    = require('net')
 
+out_port = '1514'
+out_host = '192.168.172.100'
+#Initialize Outgoing log connection
+connection = net.createConnection (out_port, out_host) ->
+	send_log = (socket, msg) ->
+		socket.write msg
+
+	connection.on 'connect', () ->
+		console.log "Opened connection to #{out_host}:#{out_port}"
+
+	connection.on 'end', (data) ->
+		console.log('Server lost ... Retrying...')
+		connection = net.createConnection out_port, out_host
+
+
+#Docker logging Mgmt
 console.log('.. initializing docker-log-central (hit ^C to quit)')
 
 # first check if we are running inside a docker container
@@ -126,6 +143,7 @@ attach = (container) ->
                             }
 			    # Do something with the log ;)
                             console.log message
+                            send_log(connection, JSON.stringify(message))
                         )
                     catch e
                         console.log 'could not parse packet: '.red + e.message

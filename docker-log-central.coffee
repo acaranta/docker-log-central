@@ -23,8 +23,8 @@ domain = require('domain')
 fs     = require('fs')
 net    = require('net')
 
-out_port = '1514'
-out_host = '192.168.172.100'
+out_port = process.env.OUT_PORT || '514'
+out_host = process.env.OUT_HOST || '127.0.0.1'
 #Initialize Outgoing log connection
 connection = net.createConnection out_port, out_host
 connection.on 'connect', () ->

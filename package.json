@@ -1,0 +1,17 @@
+{
+  "name": "docker-log-central",
+  "version": "0.0.3",
+  "author": "Arthur Caranta <arthur@caranta.com>",
+  "description": "A Docker log forwarder",
+  "keywords": ["docker", "logs"],
+  "homepage": "https://github.com/acaranta/docker-log-central",
+  "license": "MIT",
+  "bin": { "docker-log-central": "docker-log-central.js" },
+  "repository": "https://github.com/acaranta/docker-log-central",
+  "preferGlobal": true,
+  "dependencies": {
+    "colors": "~0.6.2",
+    "dockerode": "~0.1.3",
+    "node-getopt": "~0.2.3"
+  }
+}

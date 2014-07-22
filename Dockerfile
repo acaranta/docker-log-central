@@ -1,10 +1,9 @@
-FROM debian:latest
+FROM ubuntu:trusty
 
 MAINTAINER Arthur Caranta <arthur@caranta.com>
 
-RUN echo deb http://http.debian.net/debian wheezy-backports main >> /etc/apt/sources.list
 RUN apt-get update -y
-RUN apt-get install -y nodejs nodejs-legacy curl git
+RUN apt-get install -y nodejs nodejs-legacy curl
 RUN curl https://www.npmjs.org/install.sh | clean=no sh
 RUN npm install -g coffee-script
 

@@ -87,9 +87,15 @@ docker.getEvents(null, (err, stream) ->
     )
 )
 
-######################
+#####################months[(date.getMonth()+1)], #
 #Functions Definition
 ######################
+#Format syslog TimeStamp
+formatSyslogDate = (unixtime) ->
+  months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun','Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  date = new Date(unixtime)
+  return [months[(date.getMonth()+1)],("0000"+date.getDate()).substr(-2,2)].join(' ') + ' ' + [("0"+date.getHours()).substr(-2,2), ("0"+date.getMinutes()).substr(-2,2), ("0"+date.getSeconds()).substr(-2,2)].join(":")
+
 #Used to delay/wait before doing something
 delay = (ms, func) -> setTimeout func, ms
 
@@ -151,6 +157,7 @@ attach = (container) ->
                                 length: frame.length,
                                 content: frame.content,
                                 timestamp: Date.now()
+                                syslogtime: formatSyslogDate(Date.now())
                             }
 			    # Do something with the log ;)
                             console.log message

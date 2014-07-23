@@ -22,24 +22,31 @@ colors = require('colors')
 domain = require('domain')
 fs     = require('fs')
 net    = require('net')
+dgram  = require('dgram')
 
-syslog_port  = process.env.SYSLOG_PORT  || '514'
 syslog_host  = process.env.SYSLOG_HOST  || '127.0.0.1'
+syslog_port  = process.env.SYSLOG_PORT  || '514'
 syslog_proto = process.env.SYSLOG_PROTO || 'tcp'
 
+# Init syslog connection depending on the protocol
+initiateSyslog = (proto, host, port) ->
+  if (proto == 'tcp')
+    connection = net.createConnection syslog_port, syslog_host
+    connection.on 'connect', () ->
+    console.log((".. Opened connection to #{syslog_host}:#{syslog_port}/#{syslog_proto}").green)
+    connection.on 'error', (err) ->
+      console.log(("xx Error connecting to #{syslog_host}:#{syslog_port}/#{syslog_proto}").yellow)
+      delay 1000, -> connection.connect syslog_port, syslog_host
+    connection.on 'end', (data) ->
+      console.log(('Server lost ... Retrying...').yellow)
+      delay 1000, -> connection.connect syslog_port, syslog_host
+    return connection
+  else if (proto == 'udp')
+    connection = dgram.createSocket('udp4')
+    console.log((".. Socket Ready to #{syslog_host}:#{syslog_port}/#{syslog_proto}").green)
+    return connection
 #Initialize Outgoing log connection
-connection = net.createConnection syslog_port, syslog_host
-connection.on 'connect', () ->
-	console.log "Opened connection to #{syslog_host}:#{syslog_port}/#{syslog_proto}"
-
-connection.on 'error', (err) ->
-	console.log "Error connecting to #{syslog_host}:#{syslog_port}/#{syslog_proto}"
-	delay 1000, -> connection.connect syslog_port, syslog_host
-
-connection.on 'end', (data) ->
-	console.log('Server lost ... Retrying...')
-	delay 1000, -> connection.connect syslog_port, syslog_host
-
+connection = initiateSyslog(syslog_proto, syslog_host, syslog_port)
 
 #Docker logging Mgmt
 console.log('.. initializing docker-log-central (hit ^C to quit)')
@@ -92,6 +99,9 @@ docker.getEvents(null, (err, stream) ->
 ######################
 #Functions Definition
 ######################
+
+
+
 #Format syslog TimeStamp
 formatSyslogDate = (unixtime) ->
   months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun','Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -106,11 +116,17 @@ send_log = (socket, msg) ->
 	socket.write msg
 
 #used to send syslog message
-send_syslog = (socket, date, container, msg) ->
+send_syslog = (socket, host, port, proto, date, container, msg) ->
   criticity = 5
   facility = 1
-  socket.write('<' + criticity + facility + '>' + date + ' ' + container.id.substr(0,12) + ' dockerlogger: ' + msg)
-
+  message = '<' + criticity + facility + '>' + date + ' ' + container.id.substr(0,12) + ' dockerlogger: ' + msg
+  if (proto == 'tcp')
+    socket.write(message)
+  else if (proto == 'udp')
+    console.log('Sending UDP log') 
+    msg = new Buffer(message)
+    socket.send(msg, 0, message.length, port, host)
+    
 #Attach to the container to get its logs
 attach = (container) ->
     domain.create().on('error', (err) ->
@@ -169,7 +185,7 @@ attach = (container) ->
                             }
 			    # Do something with the log ;)
 #                            send_log(connection, JSON.stringify(message))
-                            send_syslog(connection, formatSyslogDate(Date.now()), container, frame.content)
+                            send_syslog(connection, syslog_host, syslog_port, syslog_proto, formatSyslogDate(Date.now()), container, frame.content)
                         )
                     catch e
                         console.log 'could not parse packet: '.red + e.message

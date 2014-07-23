@@ -103,6 +103,12 @@ delay = (ms, func) -> setTimeout func, ms
 send_log = (socket, msg) ->
 	socket.write msg
 
+#used to send syslog message
+send_syslog = (socket, date, id, msg) ->
+  criticity = 5
+  facility = 1
+  console.log('<' + criticity + facility + '>' + date + ' ' + id.substr(0,12) + ' dockerlogger: ' + msg)
+  socket.write('<' + criticity + facility + '>' + date + ' ' + id.substr(0,12) + ' dockerlogger: ' + msg)
 
 attach = (container) ->
     domain.create().on('error', (err) ->
@@ -161,7 +167,8 @@ attach = (container) ->
                             }
 			    # Do something with the log ;)
                             console.log message
-                            send_log(connection, JSON.stringify(message))
+#                            send_log(connection, JSON.stringify(message))
+                            send_syslog(connection, formatSyslogDate(Date.now()), container.id, frame.content)
                         )
                     catch e
                         console.log 'could not parse packet: '.red + e.message

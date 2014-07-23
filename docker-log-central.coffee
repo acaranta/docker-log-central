@@ -23,20 +23,22 @@ domain = require('domain')
 fs     = require('fs')
 net    = require('net')
 
-out_port = process.env.OUT_PORT || '514'
-out_host = process.env.OUT_HOST || '127.0.0.1'
+syslog_port  = process.env.SYSLOG_PORT  || '514'
+syslog_host  = process.env.SYSLOG_HOST  || '127.0.0.1'
+syslog_proto = process.env.SYSLOG_PROTO || 'tcp'
+
 #Initialize Outgoing log connection
-connection = net.createConnection out_port, out_host
+connection = net.createConnection syslog_port, syslog_host
 connection.on 'connect', () ->
-	console.log "Opened connection to #{out_host}:#{out_port}"
+	console.log "Opened connection to #{syslog_host}:#{syslog_port}/#{syslog_proto}"
 
 connection.on 'error', (err) ->
-	console.log "Error connecting to #{out_host}:#{out_port}"
-	delay 1000, -> connection.connect out_port, out_host
+	console.log "Error connecting to #{syslog_host}:#{syslog_port}/#{syslog_proto}"
+	delay 1000, -> connection.connect syslog_port, syslog_host
 
 connection.on 'end', (data) ->
 	console.log('Server lost ... Retrying...')
-	delay 1000, -> connection.connect out_port, out_host
+	delay 1000, -> connection.connect syslog_port, syslog_host
 
 
 #Docker logging Mgmt
@@ -81,13 +83,13 @@ docker.getEvents(null, (err, stream) ->
         #console.log(data) 
         if data.status != 'create'
             return
-
-      
+#Debug command to dump new containers infos      
+#        (docker.getContainer(data.id)).inspect((err,info) -> console.log(info))
         attach(docker.getContainer(data.id))
     )
 )
 
-#####################months[(date.getMonth()+1)], #
+######################
 #Functions Definition
 ######################
 #Format syslog TimeStamp
@@ -104,12 +106,12 @@ send_log = (socket, msg) ->
 	socket.write msg
 
 #used to send syslog message
-send_syslog = (socket, date, id, msg) ->
+send_syslog = (socket, date, container, msg) ->
   criticity = 5
   facility = 1
-  console.log('<' + criticity + facility + '>' + date + ' ' + id.substr(0,12) + ' dockerlogger: ' + msg)
-  socket.write('<' + criticity + facility + '>' + date + ' ' + id.substr(0,12) + ' dockerlogger: ' + msg)
+  socket.write('<' + criticity + facility + '>' + date + ' ' + container.id.substr(0,12) + ' dockerlogger: ' + msg)
 
+#Attach to the container to get its logs
 attach = (container) ->
     domain.create().on('error', (err) ->
         # most of the time it's dockerode replaying the callback when the connection is reset
@@ -136,7 +138,7 @@ attach = (container) ->
 
             console.log('<- attaching container ' + container.id.substr(0, 12).yellow)
 
-            container.attach({ logs: false, stream: true, stdout: true, stderr: true }, (err, stream) ->
+            container.attach({ logs: false, stream: true, stdin: false, stdout: true, stderr: true }, (err, stream) ->
                 throw err if err
 
                 stream.on('end', ->
@@ -166,9 +168,8 @@ attach = (container) ->
                                 syslogtime: formatSyslogDate(Date.now())
                             }
 			    # Do something with the log ;)
-                            console.log message
 #                            send_log(connection, JSON.stringify(message))
-                            send_syslog(connection, formatSyslogDate(Date.now()), container.id, frame.content)
+                            send_syslog(connection, formatSyslogDate(Date.now()), container, frame.content)
                         )
                     catch e
                         console.log 'could not parse packet: '.red + e.message

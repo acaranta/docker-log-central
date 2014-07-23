@@ -11,12 +11,11 @@ Build image
 
 Run container
 -------------
-`docker run -e OUT_PORT="xxx" -e OUT_HOST="xxx" -v /var/run/docker.sock:/var/run/docker.sock docker-log-central`
+`docker run -e SYSLOG_PROTO="xxx" -e SYSLOG_PORT="xxx" -e SYSLOG_HOST="xxx" -v /var/run/docker.sock:/var/run/docker.sock docker-log-central`
 
-* OUT_PORT : the tcp port for sending logs away
-* OUT_HOST : the tcp host for sending logs away
-
-currently in dev, the log shipping is only json sent via a TCP connection.
+* SYSLOG_PORT : the syslog port for sending logs away (default : "514" )
+* SYSLOG_HOST : the syslog host for sending logs away (default : "127.0.0.1")
+* SYSLOG_PROTO: the syslog protocol for sending logs away ("tcp" or "udp") (default : "tcp")
 
 Reference
 ---------

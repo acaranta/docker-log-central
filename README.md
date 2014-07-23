@@ -11,7 +11,12 @@ Build image
 
 Run container
 -------------
-`docker run -v /var/run/docker.sock:/var/run/docker.sock docker-log-central`
+`docker run -e OUT_PORT="xxx" -e OUT_HOST="xxx" -v /var/run/docker.sock:/var/run/docker.sock docker-log-central`
+
+*OUT_PORT : the tcp port for sending logs away
+*OUT_PORT : the tcp host for sending logs away
+
+currently in dev, the log shipping is only json sent via a TCP connection.
 
 Reference
 ---------

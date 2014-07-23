@@ -13,4 +13,5 @@ ADD package.json /dockerlogcentral/package.json
 WORKDIR /dockerlogcentral
 RUN npm install
 
-ENTRYPOINT ["/usr/bin/coffee", "/dockerlogcentral/docker-log-central.coffee"]
+#ENTRYPOINT ["/usr/bin/coffee", "/dockerlogcentral/docker-log-central.coffee"]
+CMD /usr/bin/coffee /dockerlogcentral/docker-log-central.coffee

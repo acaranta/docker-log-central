@@ -119,13 +119,15 @@ send_log = (socket, msg) ->
 send_syslog = (socket, host, port, proto, date, container, msg) ->
   criticity = 5
   facility = 1
-  message = '<' + criticity + facility + '>' + date + ' ' + container.id.substr(0,12) + ' dockerlogger: ' + msg
+  message = '<' + criticity + facility + '>' + date + ' ' + container.id.substr(0,12) + ' dockerlogger: ' + msg + '\u000A'
+#  console.log(message)
   if (proto == 'tcp')
+#    console.log('Sending TCP log') 
     socket.write(message)
   else if (proto == 'udp')
-    console.log('Sending UDP log') 
+#    console.log('Sending UDP log') 
     msg = new Buffer(message)
-    socket.send(msg, 0, message.length, port, host)
+    socket.send(msg, 0, msg.length, port, host)
     
 #Attach to the container to get its logs
 attach = (container) ->
@@ -137,8 +139,11 @@ attach = (container) ->
         container.inspect((err, info) ->
             throw err if err
 
+            #Remove leading slash from name
+            containerName = info.Name.substr(1)
+
             if container.id == docker_container_id
-                console.log('.. not attaching ' + container.id.substr(0, 12).yellow + ' since it is us')
+                console.log('.. not attaching ' + container.id.substr(0, 12).yellow + '/' + containerName.yellow + ' since it is us')
                 return
 
             use_multiplexing = not info.Config.Tty
@@ -152,14 +157,14 @@ attach = (container) ->
                         if evar[0] == name
                             env[evar[0]] = evar[1]
 
-            console.log('<- attaching container ' + container.id.substr(0, 12).yellow)
+            console.log('<- attaching container ' + container.id.substr(0, 12).yellow + '/' + containerName.yellow)
 
             container.attach({ logs: false, stream: true, stdin: false, stdout: true, stderr: true }, (err, stream) ->
                 throw err if err
 
                 stream.on('end', ->
                     delete fragment_ids[container.id]
-                    console.log('-> detaching container ' + container.id.substr(0, 12).yellow)
+                    console.log('-> detaching container ' + container.id.substr(0, 12).yellow + '/' + containerName.yellow)
                 )
 
                 fragment_ids[container.id] = 0
@@ -185,7 +190,14 @@ attach = (container) ->
                             }
 			    # Do something with the log ;)
 #                            send_log(connection, JSON.stringify(message))
-                            send_syslog(connection, syslog_host, syslog_port, syslog_proto, formatSyslogDate(Date.now()), container, frame.content)
+                            if (frame.content.substr(0,(frame.content).length-1)).indexOf("\n",0) > 0
+                                msg2 = (frame.content).substr(2,frame.content.length).split('\n')
+                                msg2.forEach (item, i) ->
+#                                  console.log(JSON.stringify(item))
+                                  if (not not item) #don't send empty lines
+                                    send_syslog(connection, syslog_host, syslog_port, syslog_proto, formatSyslogDate(Date.now()), container, item)
+                            else
+                                send_syslog(connection, syslog_host, syslog_port, syslog_proto, formatSyslogDate(Date.now()), container, frame.content)
                         )
                     catch e
                         console.log 'could not parse packet: '.red + e.message

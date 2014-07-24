@@ -31,6 +31,7 @@ TODO
 ----
 * Make it work cleanly/reliably
 * implement the use of http Docker API (in addition to the socket endpoint)
+* implement a more detailed JSON logging (ie : to ship to logstash or fluentd instead of poor old syslog)
 * implement a web "tail -f" (that would be lovely)
 
 Reference

@@ -4,6 +4,11 @@ docker-log-central
 A container to fetch logs from other docker containers running on host ... and sending them away
 
 **THIS A UNDER DEVELOPPEMENT !!! MAY NOT WORK**
+**it does work-ish ...**
+* **some lines are weirdly prefixed with non printable chars**
+* **some logs are sent ... not in order O_o**
+* **some logs are not sent**
+**YUP, it need more work/coding/debugging**
 
 Build image
 -----------

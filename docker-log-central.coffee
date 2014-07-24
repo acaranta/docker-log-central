@@ -207,14 +207,14 @@ attach = (container) ->
         )
     )
 
-parse_packet = (packet, use_multiplexing, callback) ->
+parse_packet_origin = (packet, use_multiplexing, callback) ->
     if !use_multiplexing
         return [null, Buffer.byteLength(packet, 'utf8'), line]
 
     offset = 0
 
     buf = new Buffer(packet)
-
+    console.log(JSON.stringify(packet))
     while offset < buf.length
 
         type = buf.readUInt8(offset)
@@ -227,6 +227,25 @@ parse_packet = (packet, use_multiplexing, callback) ->
         callback { type: type, length: length, content: content }
 
         offset = offset + 8 + length
+
+parse_packet = (packet, use_multiplexing, callback) ->
+    if !use_multiplexing
+        return [null, Buffer.byteLength(packet, 'utf8'), line]
+
+    offset = 0
+
+    buf = new Buffer(packet)
+    #console.log(JSON.stringify(packet))
+    type = buf.readUInt8(offset)
+    length = buf.readUInt32BE(offset + 4)
+    content = buf.toString('utf8', offset + 8, offset + 8 + length)
+
+    if not type in [0, 1, 2]
+        throw new Error('Unknown stream type ' + frame.type)
+
+    callback { type: type, length: length, content: content }
+
+    offset = offset + 8 + length
 
 String::padLeft = (padValue) ->
     String(padValue + this).slice(-padValue.length)
